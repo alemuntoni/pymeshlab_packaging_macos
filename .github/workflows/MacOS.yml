@@ -19,6 +19,7 @@ jobs:
     - name: Build Wheel
       shell: bash
       run: |
+        cd ${{ matrix.pyversion }}
         VER=$(date +%Y.%m.%d)
         echo "${VER}.dev0" | tr -d '\n'> PYML_VERSION
         pip install wheel
@@ -27,12 +28,12 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: PyMeshLab_${{ runner.os }}_python${{ matrix.pyversion }}
-        path: pymeshlab/
+        path: ${{ matrix.pyversion }}/pymeshlab/
     - name: Upload wheel ${{ runner.os }} python ${{ matrix.pyversion }}
       uses: actions/upload-artifact@v3
       with:
         name: pymeshlab_whl_${{ runner.os }}_python${{ matrix.pyversion }}
-        path: wheels/pymeshlab*.whl
+        path: ${{ matrix.pyversion }}/wheels/pymeshlab*.whl
 
   macos_tests:
     name: Test PyMeshLab (MacOS)
