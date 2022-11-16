@@ -1,0 +1,83 @@
+name: MacOS
+
+on:
+  [push, pull_request]
+
+jobs:
+  macos_build_pymeshlab:
+    name: Build PyMeshLab (MacOS)
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        pyversion: ['3.9', '3.10']
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Python ${{ matrix.pyversion }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.pyversion }}
+    - name: Build Wheel
+      shell: bash
+      run: |
+        VER=$(date +%Y.%m.%d)
+        echo "${VER}.dev0" | tr -d '\n'> PYML_VERSION
+        pip install wheel
+        pip wheel . -w wheels/
+    - name: Upload PyMeshLab_${{ runner.os }}_python${{ matrix.pyversion }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: PyMeshLab_${{ runner.os }}_python${{ matrix.pyversion }}
+        path: pymeshlab/
+    - name: Upload wheel ${{ runner.os }} python ${{ matrix.pyversion }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: pymeshlab_whl_${{ runner.os }}_python${{ matrix.pyversion }}
+        path: wheels/pymeshlab*.whl
+
+  macos_tests:
+    name: Test PyMeshLab (MacOS)
+    runs-on: macos-latest
+    needs: macos_build_pymeshlab
+    strategy:
+      matrix:
+        pyversion: ['3.9', '3.10']
+      fail-fast: false
+    steps:
+    - name: Download PyMeshLab_${{ runner.os }}_python${{ matrix.pyversion }}
+      uses: actions/download-artifact@v3
+      with:
+        name: PyMeshLab_${{ runner.os }}_python${{ matrix.pyversion }}
+        path: pymeshlab/
+    - name: Install Python ${{ matrix.pyversion }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.pyversion }}
+    - name: Run Tests ${{ matrix.pyversion }}
+      run: |
+        pip install pytest numpy
+        pytest --pyargs pymeshlab
+
+  macos_test_wheel:
+    name: Test Wheel (MacOS)
+    needs: macos_build_pymeshlab
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        pyversion: ['3.9', '3.10'] 
+      fail-fast: false
+    steps:
+    - name: Download pymeshlab_whl_${{ runner.os }}_python${{ matrix.pyversion }}
+      uses: actions/download-artifact@v3
+      with:
+        name: pymeshlab_whl_${{ runner.os }}_python${{ matrix.pyversion }}
+        path: .
+    - name: Install Python ${{ matrix.pyversion }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.pyversion }}
+    - name: Install and Test Wheel
+      shell: bash
+      run: |
+        pip install pytest
+        pip install pymeshlab*.whl
+        pytest --pyargs pymeshlab
